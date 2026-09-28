@@ -1,0 +1,1251 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>OXAL — We Break Problems Down</title>
+  <meta name="description" content="OXAL is a design-engineering agency that decomposes complex problems into precise microsolutions — then fuses them into something singular. Like oxalic acid: dissolve, refine, resolve." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,400;0,600;0,700;1,300;1,400;1,600&family=Cormorant+SC:wght@300;400;600;700&family=Space+Grotesk:wght@300;400;500;600;700&family=Space+Mono:ital,wght@0,400;0,700;1,400&display=swap" rel="stylesheet" />
+
+  <style>
+    /* ─── TOKENS ─────────────────────────────────────────── */
+    :root {
+      --c-canvas:    #DBE3D5;
+      --c-graphite:  #1A1D1A;
+      --c-vermilion: #E13010;
+      --c-chalk:     #FFFFFF;
+      --c-mid:       #8A9182;
+      --c-rule:      rgba(26,29,26,.18);
+      --c-rule-hard: rgba(26,29,26,.6);
+      --ff-display:  'Cormorant Garamond', Georgia, serif;
+      --ff-caps:     'Cormorant SC', Georgia, serif;
+      --ff-body:     'Space Grotesk', system-ui, sans-serif;
+      --ff-mono:     'Space Mono', monospace;
+      --ease-snap:   cubic-bezier(.22,1,.36,1);
+      --ease-elastic: cubic-bezier(.34,1.56,.64,1);
+    }
+
+    /* ─── RESET & LENIS ──────────────────────────────────── */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html.lenis, html.lenis body { height: auto; width: 100vw; overflow-x: hidden; }
+    .lenis.lenis-smooth { scroll-behavior: auto !important; }
+    .lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+    .lenis.lenis-stopped { overflow: hidden; }
+    .lenis.lenis-smooth iframe { pointer-events: none; }
+
+    body {
+      background: var(--c-canvas); color: var(--c-graphite);
+      font-family: var(--ff-body); font-size: 15px; line-height: 1.55;
+      cursor: none;
+    }
+    ::selection { background: var(--c-vermilion); color: var(--c-chalk); }
+
+    ::-webkit-scrollbar { width: 6px; }
+    ::-webkit-scrollbar-track { background: var(--c-canvas); border-left: 1px solid var(--c-rule); }
+    ::-webkit-scrollbar-thumb { background: var(--c-vermilion); border-radius: 0; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--c-graphite); }
+
+    /* ─── BACKGROUND ARCHITECTURAL GRID ──────────────────── */
+    body::after {
+      content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 1;
+      background-size: 20vw 100%; background-image: linear-gradient(to right, var(--c-rule) 1px, transparent 1px);
+      opacity: 0.3;
+    }
+
+    /* ─── SCROLL PROGRESS ────────────────────────────────── */
+    #scroll-progress {
+      position: fixed; top: 0; left: 0; height: 3px; background: var(--c-vermilion);
+      z-index: 100001; width: 0%; transform-origin: left; will-change: width;
+    }
+
+    /* ─── PAPER TEXTURE OVERLAY ──────────────────────────── */
+    body::before {
+      content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 9999;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+      opacity: 0.55; mix-blend-mode: multiply;
+    }
+
+    /* ─── PARTICLE CANVAS ────────────────────────────────── */
+    #particle-canvas { position: fixed; inset: 0; pointer-events: none; z-index: 100; }
+
+    /* ══════════════════════════════════════════════════
+       CURSOR SYSTEM
+    ══════════════════════════════════════════════════ */
+    #cursor-wrap { mix-blend-mode: difference; z-index: 100000; position: fixed; inset: 0; pointer-events: none; }
+    
+    /* Crosshair */
+    #crosshair { position: absolute; transform: translate(-50%, -50%); transition: opacity .2s; }
+    .ch-h, .ch-v { position: absolute; background: #fff; transition: width .2s var(--ease-snap), height .2s var(--ease-snap), opacity .2s; }
+    .ch-h { width: 28px; height: 1.5px; top: 50%; left: 50%; transform: translate(-50%,-50%); }
+    .ch-v { width: 1.5px; height: 28px; top: 50%; left: 50%; transform: translate(-50%,-50%); }
+    .ch-circle {
+      position: absolute; width: 6px; height: 6px; border: 1.5px solid #fff; border-radius: 50%;
+      top: 50%; left: 50%; transform: translate(-50%,-50%);
+      transition: width .2s var(--ease-elastic), height .2s var(--ease-elastic), background .2s, border-color .2s;
+    }
+    
+    body.hovering .ch-h { width: 0px; opacity: 0; }
+    body.hovering .ch-v { height: 0px; opacity: 0; }
+    body.hovering .ch-circle { width: 14px; height: 14px; background: #fff; border-color: #fff; }
+    
+    #crosshair-ring {
+      position: absolute; transform: translate(-50%, -50%); width: 44px; height: 44px; transition: opacity .2s;
+    }
+    #crosshair-ring svg { width: 100%; height: 100%; }
+
+    /* Work View Cursor */
+    #work-cursor {
+      position: absolute; transform: translate(-50%, -50%) scale(0);
+      width: 72px; height: 72px; background: var(--c-vermilion); border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-family: var(--ff-mono); font-size: 10px; font-weight: 700; letter-spacing: 0.1em;
+      color: #fff; opacity: 0; transition: transform .3s var(--ease-elastic), opacity .3s;
+      mix-blend-mode: normal; /* Override the difference blend */
+    }
+    
+    /* State switches */
+    body.hover-work #crosshair { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+    body.hover-work #crosshair-ring { opacity: 0; }
+    body.hover-work #work-cursor { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+
+    /* ══════════════════════════════════════════════════
+       FLOATING EDITORIAL NAV
+    ══════════════════════════════════════════════════ */
+    .floating-nav {
+      position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+      z-index: 9990; display: flex; align-items: center; gap: 0;
+      background: var(--c-graphite); border: 1px solid rgba(219,227,213,.12);
+      padding: 0; transition: top .4s var(--ease-snap), opacity .3s, transform .4s var(--ease-snap);
+      overflow: hidden;
+    }
+    .floating-nav.hidden { top: -80px; opacity: 0; pointer-events: none; }
+    .fnav-logo { font-family: var(--ff-caps); font-size: 18px; font-weight: 700; color: var(--c-canvas); letter-spacing: .04em; padding: 14px 24px; border-right: 1px solid rgba(219,227,213,.12); text-decoration: none; position: relative; white-space: nowrap; cursor: none; }
+    .fnav-logo .fnav-dot { color: var(--c-vermilion); display: inline-block; }
+    .fnav-links { display: flex; align-items: center; }
+    .fnav-link { font-family: var(--ff-mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: rgba(219,227,213,.6); text-decoration: none; padding: 14px 20px; position: relative; transition: color .2s; border-right: 1px solid rgba(219,227,213,.08); white-space: nowrap; cursor: none; }
+    .fnav-link::after { content: ''; position: absolute; bottom: 0; left: 20px; right: 20px; height: 1.5px; background: var(--c-vermilion); transform: scaleX(0); transform-origin: left; transition: transform .28s var(--ease-snap); }
+    .fnav-link:hover { color: var(--c-canvas); }
+    .fnav-link:hover::after { transform: scaleX(1); }
+    .fnav-cta { font-family: var(--ff-mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--c-chalk); background: var(--c-vermilion); text-decoration: none; padding: 14px 22px; white-space: nowrap; position: relative; overflow: hidden; transition: color .25s; cursor: none; }
+    .fnav-cta::before { content: ''; position: absolute; inset: 0; background: var(--c-canvas); transform: translateY(100%); transition: transform .28s var(--ease-snap); }
+    .fnav-cta:hover::before { transform: translateY(0); }
+    .fnav-cta:hover { color: var(--c-graphite); }
+    .fnav-cta span { position: relative; z-index: 1; }
+
+    /* ─── MASTHEAD ───────────────────────────────────────── */
+    .masthead { padding: 0; border-bottom: 2px solid var(--c-graphite); position: relative; padding-top: 0; z-index: 2; }
+    .masthead__title-row { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; padding: 16px 40px 0; gap: 20px; }
+    .masthead__left-info, .masthead__right-info { font-family: var(--ff-mono); font-size: 11px; color: var(--c-mid); text-transform: uppercase; letter-spacing: .08em; line-height: 1.8; }
+    .masthead__right-info { text-align: right; }
+    .masthead__brand { text-align: center; padding: 32px 0 16px; position: relative; }
+    .oxal-word { display: inline-flex; align-items: baseline; gap: 0; position: relative; }
+    .oxal-letter { font-family: var(--ff-caps); font-size: clamp(72px, 11vw, 140px); font-weight: 700; letter-spacing: -.02em; line-height: 1; color: var(--c-graphite); display: inline-block; position: relative; transition: transform .4s var(--ease-elastic), color .3s; will-change: transform; cursor: none; }
+    .oxal-letter--a { color: var(--c-graphite); position: relative; }
+    .oxal-letter--a::after { content: ''; position: absolute; bottom: 6px; left: 0; right: 0; height: 3px; background: var(--c-vermilion); transform-origin: left; transform: scaleX(0); animation: inkStroke 1.2s 1.8s var(--ease-snap) forwards; }
+    @keyframes inkStroke { 0% { transform: scaleX(0); opacity: 1; } 60% { transform: scaleX(1.1); } 80% { transform: scaleX(0.95); } 100% { transform: scaleX(1); } }
+    .masthead__sub { font-family: var(--ff-display); font-size: 13px; font-style: italic; letter-spacing: .14em; text-transform: uppercase; color: var(--c-mid); margin-top: 8px; overflow: hidden; }
+    .masthead__sub-inner { display: block; animation: revealUp .8s 2s var(--ease-snap) both; }
+    @keyframes revealUp { from { transform: translateY(110%); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+    .masthead__bottom { display: flex; align-items: center; justify-content: space-between; padding: 10px 40px; margin-top: 16px; border-top: 1px solid var(--c-rule-hard); background: var(--c-graphite); color: var(--c-canvas); font-family: var(--ff-mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; }
+    .masthead__bottom a { color: var(--c-canvas); text-decoration: none; transition: color .2s; cursor: none; }
+    .masthead__bottom a:hover { color: var(--c-vermilion); }
+    .clock-display { color: var(--c-vermilion); display: inline-flex; gap: 6px; align-items: center; }
+    .clock-dot { animation: blink 1s infinite step-start; }
+    @keyframes blink { 50% { opacity: 0; } }
+
+    /* ─── HERO ───────────────────────────────────────────── */
+    .hero { display: grid; grid-template-columns: 1fr 2px 1.6fr 2px 1fr; min-height: 72vh; border-bottom: 2px solid var(--c-graphite); position: relative; z-index: 2; }
+    .hero__col { padding: 36px 40px; }
+    .hero__divider { background: var(--c-graphite); width: 2px; }
+    .hero__col--left { display: flex; flex-direction: column; justify-content: space-between; }
+    .hero__kicker { font-family: var(--ff-mono); font-size: 11px; text-transform: uppercase; letter-spacing: .15em; color: var(--c-mid); margin-bottom: 16px; overflow: hidden; }
+    .hero__kicker-inner { display: block; animation: revealUp .7s 2.2s var(--ease-snap) both; }
+    .line-reveal { overflow: hidden; display: block; }
+    .line-reveal-inner { display: block; animation: revealUp .8s var(--ease-snap) both; }
+    .hero__headline { font-family: var(--ff-display); font-size: clamp(38px, 5vw, 72px); font-weight: 700; line-height: 1.02; letter-spacing: -.02em; }
+    .hero__headline em { font-style: italic; color: var(--c-vermilion); }
+    .hero__body-text { font-family: var(--ff-body); font-size: 14px; line-height: 1.7; color: #3a3d3a; margin-top: 24px; opacity: 0; animation: fadeSlide .8s 2.8s var(--ease-snap) both; }
+    @keyframes fadeSlide { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: translateY(0); } }
+    .hero__col--center { position: relative; overflow: hidden; background: var(--c-graphite); padding: 0; }
+    .hero__sketch-canvas { width: 100%; height: 100%; min-height: 400px; position: relative; }
+    #sketch-svg { width: 100%; height: 100%; position: absolute; inset: 0; }
+    .hero__col--right { display: flex; flex-direction: column; justify-content: space-between; }
+    .hero__quote { font-family: var(--ff-display); font-size: 19px; font-style: italic; line-height: 1.4; border-left: 3px solid var(--c-vermilion); padding-left: 20px; margin-bottom: 32px; opacity: 0; animation: fadeSlide .8s 3s var(--ease-snap) both; }
+    .hero__meta-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 1px; background: var(--c-rule-hard); border: 1px solid var(--c-rule-hard); opacity: 0; animation: fadeSlide .8s 3.2s var(--ease-snap) both; }
+    .hero__meta-item { background: var(--c-canvas); padding: 16px; }
+    .hero__meta-label { font-family: var(--ff-mono); font-size: 10px; text-transform: uppercase; letter-spacing: .12em; color: var(--c-mid); margin-bottom: 6px; }
+    .hero__meta-value { font-family: var(--ff-display); font-size: 22px; font-weight: 700; line-height: 1; }
+    .hero__meta-value.red { color: var(--c-vermilion); }
+    .hero__left-bottom { margin-top: 32px; }
+
+    /* ─── MAGNETIC CTA ────────────────────────────────────── */
+    .cta-btn { display: inline-flex; align-items: center; gap: 10px; background: var(--c-vermilion); color: var(--c-chalk); font-family: var(--ff-mono); font-size: 12px; letter-spacing: .1em; text-transform: uppercase; padding: 14px 28px; text-decoration: none; border: none; cursor: none; position: relative; overflow: hidden; transition: transform .35s var(--ease-elastic), box-shadow .35s; will-change: transform; }
+    .cta-btn::after { content: ''; position: absolute; inset: 0; background: var(--c-graphite); transform: translateX(-101%); transition: transform .28s var(--ease-snap); }
+    .cta-btn:hover::after { transform: translateX(0); }
+    .cta-btn span { position: relative; z-index: 1; }
+
+    /* ─── MARQUEE BAND ───────────────────────────────────── */
+    .marquee-band { position: relative; z-index: 2; background: var(--c-vermilion); color: var(--c-chalk); overflow: hidden; padding: 10px 0; border-bottom: 2px solid var(--c-graphite); }
+    .marquee-track { display: flex; white-space: nowrap; animation: marquee 22s linear infinite; }
+    .marquee-track:hover { animation-play-state: paused; }
+    .marquee-item { font-family: var(--ff-caps); font-size: 13px; letter-spacing: .14em; text-transform: uppercase; padding: 0 40px; flex-shrink: 0; }
+    .marquee-sep { color: rgba(255,255,255,.4); padding: 0 8px; }
+    @keyframes marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+    /* ─── SECTION HEADER ─────────────────────────────────── */
+    .section-header { position: relative; z-index: 2; display: flex; align-items: baseline; justify-content: space-between; padding: 28px 40px 24px; border-bottom: 1px solid var(--c-rule-hard); }
+    .section-header__title { font-family: var(--ff-caps); font-size: 16px; font-weight: 700; letter-spacing: .2em; text-transform: uppercase; color: var(--c-graphite); }
+    .section-header__index { font-family: var(--ff-mono); font-size: 11px; color: var(--c-mid); }
+
+    /* ─── PROCESS ────────────────────────────────────────── */
+    .section-process { position: relative; z-index: 2; display: grid; grid-template-columns: repeat(4, 1fr); border-bottom: 2px solid var(--c-graphite); }
+    .process-col { padding: 40px 36px; border-right: 1px solid var(--c-rule-hard); position: relative; overflow: hidden; transition: background .35s var(--ease-snap); transform-style: preserve-3d; }
+    .process-col:last-child { border-right: none; }
+    .process-col:hover { background: var(--c-graphite); }
+    .process-col:hover .process-num { color: var(--c-vermilion); opacity: .3; }
+    .process-col:hover .process-title { color: var(--c-canvas); }
+    .process-col:hover .process-text { color: rgba(219,227,213,.75); }
+    .process-col:hover .process-icon-line { stroke: var(--c-canvas); }
+    .process-num { font-family: var(--ff-display); font-size: 72px; font-weight: 300; line-height: 1; color: rgba(26,29,26,.1); transition: color .3s, opacity .3s; user-select: none; }
+    .process-icon { margin: 12px 0 18px; height: 44px; }
+    .process-icon-line { transition: stroke .35s; }
+    .process-title { font-family: var(--ff-display); font-size: 22px; font-weight: 700; line-height: 1.1; margin-bottom: 12px; transition: color .35s; }
+    .process-text { font-family: var(--ff-body); font-size: 13px; line-height: 1.65; color: #3a3d3a; transition: color .35s; }
+
+    /* ─── BIG STATEMENT (STAGGER REVEAL) ─────────────────── */
+    .big-statement { position: relative; z-index: 2; padding: 120px 40px; border-bottom: 2px solid var(--c-graphite); overflow: hidden; }
+    .big-statement__text { font-family: var(--ff-display); font-size: clamp(36px, 7vw, 110px); font-weight: 700; line-height: 0.95; letter-spacing: -.02em; max-width: 1200px; position: relative; z-index: 2; display: flex; flex-wrap: wrap; gap: 0 1.2vw; }
+    
+    .stagger-word { overflow: hidden; display: inline-block; padding-bottom: 4px; margin-bottom: -4px; }
+    .stagger-word-inner { 
+      display: inline-block; transform: translateY(110%); opacity: 0; 
+      transition: transform 1s var(--ease-elastic), opacity 1s; 
+    }
+    .big-statement.revealed .stagger-word-inner { transform: translateY(0); opacity: 1; }
+    
+    .stagger-word.italic { font-style: italic; color: var(--c-vermilion); }
+    .stagger-word.outline .stagger-word-inner { -webkit-text-stroke: 2px var(--c-graphite); color: transparent; transition: color .4s, -webkit-text-stroke .4s, transform 1s var(--ease-elastic), opacity 1s; }
+    .big-statement:hover .stagger-word.outline .stagger-word-inner { color: var(--c-graphite); -webkit-text-stroke: 0px transparent; }
+    
+    .big-statement__side { position: absolute; right: 40px; bottom: 40px; font-family: var(--ff-mono); font-size: 11px; letter-spacing: .12em; text-transform: uppercase; color: var(--c-mid); text-align: right; line-height: 2; }
+    .big-num { position: absolute; right: 40px; top: 40px; font-family: var(--ff-display); font-size: 200px; font-weight: 700; color: rgba(26,29,26,.04); line-height: 1; user-select: none; pointer-events: none; }
+
+    /* ─── WORKS ────────────────────────────── */
+    .works-grid { position: relative; z-index: 2; display: grid; grid-template-columns: 1.4fr 2px 1fr 2px 1fr; border-bottom: 2px solid var(--c-graphite); }
+    .work-card { padding: 40px; position: relative; overflow: hidden; cursor: none; transition: transform .1s; }
+    .work-divider { background: var(--c-graphite); }
+    .work-tag { font-family: var(--ff-mono); font-size: 10px; text-transform: uppercase; letter-spacing: .14em; color: var(--c-mid); margin-bottom: 20px; }
+    .work-title { font-family: var(--ff-display); font-size: clamp(24px, 3vw, 42px); font-weight: 700; line-height: 1.05; margin-bottom: 16px; }
+    .work-title em { font-style: italic; color: var(--c-vermilion); }
+    .work-desc { font-size: 13px; line-height: 1.65; color: #3a3d3a; max-width: 420px; }
+    .work-visual { margin-top: 32px; height: 200px; background: var(--c-graphite); position: relative; overflow: hidden; }
+    .work-visual svg { width: 100%; height: 100%; }
+    .work-card--sm { padding: 32px; border-bottom: 1px solid var(--c-rule-hard); }
+    .work-card--sm:last-child { border-bottom: none; }
+    .work-sm-title { font-family: var(--ff-display); font-size: 20px; font-weight: 700; line-height: 1.1; margin-bottom: 8px; }
+    .work-sm-text { font-size: 12.5px; line-height: 1.6; color: #3a3d3a; }
+    .work-arrow { display: inline-block; margin-top: 12px; font-family: var(--ff-mono); font-size: 11px; letter-spacing: .1em; text-transform: uppercase; color: var(--c-vermilion); text-decoration: none; transition: letter-spacing .2s var(--ease-snap); }
+    .work-arrow:hover { letter-spacing: .2em; }
+
+    /* ─── SERVICES ───────────────────────────────────────── */
+    .services { position: relative; z-index: 2; display: grid; grid-template-columns: 320px 2px 1fr; border-bottom: 2px solid var(--c-graphite); min-height: 480px; }
+    .services__label-col { padding: 40px; display: flex; flex-direction: column; justify-content: space-between; }
+    .services__label { font-family: var(--ff-display); font-size: clamp(32px, 4vw, 56px); font-weight: 700; line-height: 1.05; }
+    .services__label em { font-style: italic; color: var(--c-vermilion); }
+    .services__label-note { font-family: var(--ff-body); font-size: 13px; line-height: 1.65; color: #3a3d3a; margin-top: 20px; }
+    .services__divider { background: var(--c-graphite); }
+    .services__grid { display: grid; grid-template-columns: repeat(3, 1fr); }
+    .service-item { padding: 36px 32px; border-bottom: 1px solid var(--c-rule-hard); border-right: 1px solid var(--c-rule-hard); position: relative; overflow: hidden; transition: background .25s var(--ease-snap); }
+    .service-item:hover { background: var(--c-graphite); }
+    .service-item:hover .service-name { color: var(--c-canvas); }
+    .service-item:hover .service-desc { color: rgba(219,227,213,.7); }
+    .service-item:nth-last-child(-n+3) { border-bottom: none; }
+    .service-item:nth-child(3n) { border-right: none; }
+    .service-icon-wrap { margin-bottom: 20px; height: 36px; display: flex; align-items: center; }
+    .service-name { font-family: var(--ff-display); font-size: 20px; font-weight: 700; line-height: 1.1; margin-bottom: 10px; transition: color .25s; }
+    .service-desc { font-size: 13px; line-height: 1.6; color: #3a3d3a; transition: color .25s; }
+
+    /* ─── MANIFESTO ──────────────────────────────────────── */
+    .manifesto { position: relative; z-index: 2; display: grid; grid-template-columns: 1fr 2px 1fr; border-bottom: 2px solid var(--c-graphite); }
+    .manifesto__left { background: var(--c-graphite); color: var(--c-canvas); padding: 64px 48px; }
+    .manifesto__eyebrow { font-family: var(--ff-mono); font-size: 11px; letter-spacing: .15em; text-transform: uppercase; color: rgba(219,227,213,.5); margin-bottom: 24px; }
+    .manifesto__heading { font-family: var(--ff-display); font-size: clamp(28px, 3.5vw, 52px); font-weight: 700; line-height: 1.05; margin-bottom: 28px; }
+    .manifesto__heading em { color: var(--c-vermilion); font-style: italic; }
+    .manifesto__body { font-size: 14px; line-height: 1.75; color: rgba(219,227,213,.8); max-width: 480px; }
+    .manifesto__divider { background: var(--c-graphite); }
+    .manifesto__right { padding: 64px 48px; display: flex; flex-direction: column; justify-content: space-between; }
+    .manifesto__formula { font-family: var(--ff-display); font-size: 15px; line-height: 2.2; }
+    .manifesto__formula .step { display: flex; align-items: center; gap: 16px; }
+    .manifesto__formula .step-num { font-family: var(--ff-mono); font-size: 11px; color: var(--c-mid); letter-spacing: .1em; min-width: 24px; }
+    .manifesto__formula .step-line { flex: 1; height: 1px; background: var(--c-rule); }
+    .manifesto__formula .step-arrow { color: var(--c-vermilion); font-size: 18px; }
+    .manifesto__formula .step-label { font-family: var(--ff-display); font-size: 18px; font-weight: 600; }
+    .manifesto__cta-area { margin-top: 40px; }
+    .manifesto__cta-label { font-family: var(--ff-mono); font-size: 11px; text-transform: uppercase; letter-spacing: .12em; color: var(--c-mid); margin-bottom: 14px; }
+
+    /* ─── FOOTER ─────────────────────────────────────────── */
+    footer { position: relative; z-index: 2; background: var(--c-graphite); color: var(--c-canvas); padding: 0; }
+    .footer__top { display: grid; grid-template-columns: 1fr 2px 1fr 2px 1fr; border-bottom: 1px solid rgba(219,227,213,.15); }
+    .footer__col { padding: 48px 40px; }
+    .footer__divider { background: rgba(219,227,213,.15); }
+    .footer__col-label { font-family: var(--ff-mono); font-size: 10px; text-transform: uppercase; letter-spacing: .15em; color: rgba(219,227,213,.4); margin-bottom: 20px; }
+    .footer__logo-text { font-family: var(--ff-caps); font-size: 48px; font-weight: 700; line-height: 1; color: var(--c-canvas); }
+    .footer__logo-sub { font-family: var(--ff-display); font-style: italic; font-size: 13px; color: rgba(219,227,213,.5); margin-top: 8px; }
+    .footer__link-list { list-style: none; }
+    .footer__link-list li + li { margin-top: 10px; }
+    .footer__link-list a { font-family: var(--ff-display); font-size: 18px; font-weight: 600; color: rgba(219,227,213,.7); text-decoration: none; transition: color .2s, transform .2s var(--ease-snap); display: inline-flex; align-items: center; gap: 8px; cursor: none; transform-origin: left center; }
+    .footer__link-list a::before { content: '→'; color: var(--c-vermilion); font-size: 14px; opacity: 0; transform: translateX(-6px); transition: opacity .2s, transform .2s; }
+    .footer__link-list a:hover { color: var(--c-canvas); transform: translateX(4px); }
+    .footer__link-list a:hover::before { opacity: 1; transform: translateX(0); }
+    .footer__contact-email { font-family: var(--ff-display); font-size: 22px; font-weight: 600; color: var(--c-canvas); text-decoration: none; display: block; margin-bottom: 16px; transition: color .2s; cursor: none; }
+    .footer__contact-email:hover { color: var(--c-vermilion); }
+    .footer__contact-note { font-size: 12px; color: rgba(219,227,213,.4); line-height: 1.6; }
+    .footer__bottom { display: flex; align-items: center; justify-content: space-between; padding: 18px 40px; font-family: var(--ff-mono); font-size: 11px; letter-spacing: .08em; text-transform: uppercase; color: rgba(219,227,213,.3); }
+    .footer__bottom a { color: rgba(219,227,213,.5); text-decoration: none; cursor: none; }
+    .footer__bottom a:hover { color: var(--c-vermilion); }
+
+    /* ─── SCROLL REVEAL ──────────────────────────────────── */
+    [data-reveal]:not(.big-statement) { opacity: 0; transform: translateY(32px); transition: opacity .75s var(--ease-snap), transform .75s var(--ease-snap); }
+    [data-reveal]:not(.big-statement).revealed { opacity: 1; transform: translateY(0); }
+
+    /* ─── SKETCH DRAW ANIMATION ──────────────────────────── */
+    .sketch-path { stroke-dasharray: 600; stroke-dashoffset: 600; animation: draw-sketch 2.5s var(--ease-snap) forwards; }
+    .sketch-path-2 { animation-delay: .4s; }
+    .sketch-path-3 { animation-delay: .8s; }
+    .sketch-path-4 { animation-delay: 1.2s; }
+    @keyframes draw-sketch { to { stroke-dashoffset: 0; } }
+
+    /* ─── HERO CENTER TEXT ───────────────────────────────── */
+    .hero-center-text { position: absolute; bottom: 32px; left: 32px; right: 32px; z-index: 3; }
+    .hero-center-tagline { font-family: var(--ff-display); font-size: clamp(14px,2vw,22px); font-style: italic; color: rgba(219,227,213,.7); line-height: 1.3; }
+
+    /* ─── VERMILION SWEEP ────────────────────────────────── */
+    .vermilion-sweep { position: fixed; inset: 0; background: var(--c-vermilion); z-index: 99998; transform: translateX(-100%); pointer-events: none; }
+    .vermilion-sweep.active { animation: sweep .65s var(--ease-snap) forwards; }
+    @keyframes sweep { 0% { transform: translateX(-100%); opacity: 1; } 50% { transform: translateX(0); } 100% { transform: translateX(100%); opacity: 0; } }
+
+    /* ─── PAGE LOAD ──────────────────────────────────────── */
+    .page-load-screen { position: fixed; inset: 0; background: var(--c-graphite); z-index: 100002; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 20px; transition: opacity .7s .2s, transform .7s .2s var(--ease-snap); }
+    .page-load-screen.gone { opacity: 0; transform: scale(1.05); pointer-events: none; }
+    .load-logo { font-family: var(--ff-caps); font-size: 80px; font-weight: 700; color: var(--c-canvas); letter-spacing: -.02em; position: relative; }
+    .load-logo .load-dot { color: var(--c-vermilion); }
+    .load-bar-wrap { width: 200px; height: 1px; background: rgba(219,227,213,.15); position: relative; }
+    .load-bar { position: absolute; left: 0; top: 0; height: 100%; background: var(--c-vermilion); width: 0; animation: load-progress 1.5s cubic-bezier(0.8, 0, 0.2, 1) forwards; }
+    .load-sub { font-family: var(--ff-mono); font-size: 10px; letter-spacing: .2em; text-transform: uppercase; color: rgba(219,227,213,.35); display: flex; justify-content: space-between; width: 200px; }
+    @keyframes load-progress { to { width: 100%; } }
+
+    /* ─── CARD TILT ──────────────────────────────────────── */
+    .tilt-card { transform-style: preserve-3d; transition: transform .1s linear, box-shadow .3s; }
+    .tilt-card:hover { box-shadow: 0 20px 60px rgba(26,29,26,.12); z-index: 2; }
+
+    /* ─── TEXT SCRAMBLE ──────────────────────────────────── */
+    .scramble { cursor: none; }
+
+    /* ─── LETTER FLOAT ───────────────────────────────────── */
+    @keyframes letterEntrance { from { opacity: 0; transform: translateY(60px) rotate(4deg); filter: blur(3px); } to { opacity: 1; transform: translateY(0) rotate(0deg); filter: blur(0); } }
+    .oxal-letter { animation: letterEntrance 1s var(--ease-elastic) both; }
+    .oxal-letter:nth-child(1) { animation-delay: .3s; }
+    .oxal-letter:nth-child(2) { animation-delay: .45s; }
+    .oxal-letter:nth-child(3) { animation-delay: .6s; }
+    .oxal-letter:nth-child(4) { animation-delay: .75s; }
+
+    /* ─── RESPONSIVE ─────────────────────────────────────── */
+    @media (max-width: 1024px) {
+      .hero { grid-template-columns: 1fr; }
+      .hero__divider { display: none; }
+      .hero__col--center { min-height: 300px; }
+      .section-process { grid-template-columns: 1fr 1fr; }
+      .works-grid { grid-template-columns: 1fr; }
+      .work-divider { display: none; }
+      .services { grid-template-columns: 1fr; }
+      .services__divider { display: none; }
+      .services__grid { grid-template-columns: 1fr 1fr; }
+      .manifesto { grid-template-columns: 1fr; }
+      .manifesto__divider { display: none; }
+      .footer__top { grid-template-columns: 1fr; }
+      .footer__divider { display: none; }
+      .masthead__title-row { padding: 16px 20px 0; }
+      .hero__col { padding: 28px 24px; }
+      .big-statement { padding: 48px 24px; }
+      .floating-nav { display: none; }
+    }
+    @media (max-width: 640px) {
+      .masthead__bottom { padding: 10px 20px; flex-wrap: wrap; gap: 8px; }
+      .section-process { grid-template-columns: 1fr; }
+      .services__grid { grid-template-columns: 1fr; }
+      .section-header { padding: 20px; }
+      .footer__col { padding: 32px 24px; }
+      .footer__bottom { flex-direction: column; gap: 8px; text-align: center; }
+    }
+  </style>
+  
+  <!-- LENIS SMOOTH SCROLL -->
+  <script src="https://unpkg.com/@studio-freight/lenis@1.0.42/dist/lenis.min.js"></script>
+</head>
+<body>
+
+  <!-- SCROLL PROGRESS -->
+  <div id="scroll-progress"></div>
+
+  <!-- PAGE LOAD -->
+  <div class="page-load-screen" id="loadScreen">
+    <div class="load-logo">OXAL<span class="load-dot">.</span></div>
+    <div class="load-bar-wrap"><div class="load-bar"></div></div>
+    <div class="load-sub">
+      <span>Loading the studio</span>
+      <span><span id="loadPct">0</span>%</span>
+    </div>
+  </div>
+
+  <!-- CURSOR SYSTEM -->
+  <div id="cursor-wrap">
+    <div id="crosshair">
+      <div class="ch-h"></div>
+      <div class="ch-v"></div>
+      <div class="ch-circle"></div>
+    </div>
+    <div id="crosshair-ring">
+      <svg viewBox="0 0 44 44" fill="none">
+        <circle cx="22" cy="22" r="20" stroke="#fff" stroke-width="0.8" stroke-dasharray="3 3"/>
+      </svg>
+    </div>
+  </div>
+  
+  <!-- WORK CUSTOM CURSOR -->
+  <div id="work-cursor">VIEW</div>
+
+  <!-- VERMILION SWEEP -->
+  <div class="vermilion-sweep" id="sweep"></div>
+
+  <!-- PARTICLE CANVAS -->
+  <canvas id="particle-canvas"></canvas>
+
+  <!-- ══════════ FLOATING EDITORIAL NAV ══════════ -->
+  <nav class="floating-nav" id="floatingNav">
+    <a href="#hero" class="fnav-logo">OX<span class="fnav-dot">A</span>L</a>
+    <div class="fnav-links">
+      <a href="#process" class="fnav-link">Process</a>
+      <a href="#works" class="fnav-link">Works</a>
+      <a href="#services" class="fnav-link">Services</a>
+      <a href="#contact" class="fnav-link">Contact</a>
+    </div>
+    <a href="#contact" class="fnav-cta"><span>Commission →</span></a>
+  </nav>
+
+  <!-- ══════════ MASTHEAD ══════════ -->
+  <header class="masthead">
+    <div class="masthead__title-row">
+      <div class="masthead__left-info">
+        <div>Design &amp; Engineering</div>
+        <div style="margin-top:4px;color:var(--c-vermilion)">Vol. I, No. 01</div>
+      </div>
+
+      <div class="masthead__brand">
+        <div class="oxal-word" id="oxalWord">
+          <span class="oxal-letter" data-letter="O">O</span>
+          <span class="oxal-letter" data-letter="X">X</span>
+          <span class="oxal-letter oxal-letter--a" data-letter="A">A</span>
+          <span class="oxal-letter" data-letter="L">L</span>
+        </div>
+        <div class="masthead__sub">
+          <span class="masthead__sub-inner">Decompose — Refine — Resolve</span>
+        </div>
+      </div>
+
+      <div class="masthead__right-info">
+        <div>oxal.dev</div>
+        <div style="margin-top:4px" id="localTime" class="clock-display">
+          <span class="clock-dot">●</span> --:--:--
+        </div>
+      </div>
+    </div>
+
+    <div class="masthead__bottom">
+      <span>Precision through Dissolution</span>
+      <span>Design — Engineering — Strategy — Identity</span>
+      <a href="#contact">→ Start a Project</a>
+    </div>
+  </header>
+
+  <!-- ══════════ HERO ══════════ -->
+  <section class="hero" id="hero">
+    <div class="hero__col hero__col--left">
+      <div>
+        <p class="hero__kicker"><span class="hero__kicker-inner">Agency Statement — 2025</span></p>
+        <h1 class="hero__headline">
+          <span class="line-reveal"><span class="line-reveal-inner" style="animation-delay:2.3s">Like</span></span>
+          <span class="line-reveal"><span class="line-reveal-inner" style="animation-delay:2.45s"><em>Acid</em></span></span>
+          <span class="line-reveal"><span class="line-reveal-inner" style="animation-delay:2.6s">on</span></span>
+          <span class="line-reveal"><span class="line-reveal-inner" style="animation-delay:2.75s">Complexity.</span></span>
+        </h1>
+        <p class="hero__body-text">
+          Oxalic acid dissolves even the most stubborn compounds — layer by layer, bond by bond. OXAL does the same for your hardest product, design, and engineering problems.
+        </p>
+      </div>
+      <div class="hero__left-bottom">
+        <a href="#contact" class="cta-btn magnetic" id="heroBtn">
+          <span>Commission Work →</span>
+        </a>
+      </div>
+    </div>
+
+    <div class="hero__divider"></div>
+
+    <!-- CENTER SKETCH PANEL -->
+    <div class="hero__col hero__col--center" id="sketchPanel">
+      <div class="hero__sketch-canvas">
+        <svg id="sketch-svg" viewBox="0 0 520 600" fill="none" xmlns="http://www.w3.org/2000/svg" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <pattern id="grid" width="32" height="32" patternUnits="userSpaceOnUse">
+              <path d="M 32 0 L 0 0 0 32" fill="none" stroke="rgba(219,227,213,0.07)" stroke-width="0.5"/>
+            </pattern>
+          </defs>
+          <rect width="520" height="600" fill="#1A1D1A"/>
+          <rect width="520" height="600" fill="url(#grid)"/>
+          <path class="sketch-path scroll-draw" d="M260,80 L360,140 L360,260 L260,320 L160,260 L160,140 Z" stroke="rgba(219,227,213,0.7)" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path class="sketch-path sketch-path-2 scroll-draw" d="M258,82 L362,143 L363,258 L260,322 L158,258 L157,138 Z" stroke="rgba(219,227,213,0.2)" stroke-width="0.8" stroke-linecap="round"/>
+          <path class="sketch-path sketch-path-2 scroll-draw" d="M260,148 L310,178 L310,238 L260,268 L210,238 L210,178 Z" stroke="rgba(219,227,213,0.5)" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+          <line class="sketch-path sketch-path-3" x1="260" y1="80" x2="260" y2="148" stroke="rgba(219,227,213,0.55)" stroke-width="1.2" stroke-linecap="round"/>
+          <line class="sketch-path sketch-path-3" x1="360" y1="140" x2="310" y2="178" stroke="rgba(219,227,213,0.55)" stroke-width="1.2" stroke-linecap="round"/>
+          <line class="sketch-path sketch-path-3" x1="360" y1="260" x2="310" y2="238" stroke="rgba(219,227,213,0.55)" stroke-width="1.2" stroke-linecap="round"/>
+          <line class="sketch-path sketch-path-3" x1="260" y1="320" x2="260" y2="268" stroke="rgba(219,227,213,0.55)" stroke-width="1.2" stroke-linecap="round"/>
+          <line class="sketch-path sketch-path-3" x1="160" y1="260" x2="210" y2="238" stroke="rgba(219,227,213,0.55)" stroke-width="1.2" stroke-linecap="round"/>
+          <line class="sketch-path sketch-path-3" x1="160" y1="140" x2="210" y2="178" stroke="rgba(219,227,213,0.55)" stroke-width="1.2" stroke-linecap="round"/>
+          <circle cx="260" cy="208" r="8" fill="#E13010" class="sketch-path sketch-path-4"/>
+          <circle cx="260" cy="208" r="14" stroke="#E13010" stroke-width="1" opacity="0.4" class="sketch-path sketch-path-4"/>
+          <circle cx="260" cy="80" r="5" fill="rgba(219,227,213,0.15)" stroke="rgba(219,227,213,0.6)" stroke-width="1.2"/>
+          <circle cx="360" cy="140" r="5" fill="rgba(219,227,213,0.15)" stroke="rgba(219,227,213,0.6)" stroke-width="1.2"/>
+          <circle cx="360" cy="260" r="5" fill="rgba(219,227,213,0.15)" stroke="rgba(219,227,213,0.6)" stroke-width="1.2"/>
+          <circle cx="260" cy="320" r="5" fill="rgba(219,227,213,0.15)" stroke="rgba(219,227,213,0.6)" stroke-width="1.2"/>
+          <circle cx="160" cy="260" r="5" fill="rgba(219,227,213,0.15)" stroke="rgba(219,227,213,0.6)" stroke-width="1.2"/>
+          <circle cx="160" cy="140" r="5" fill="rgba(219,227,213,0.15)" stroke="rgba(219,227,213,0.6)" stroke-width="1.2"/>
+          <line class="sketch-path sketch-path-4" x1="360" y1="140" x2="420" y2="100" stroke="rgba(219,227,213,0.3)" stroke-width="0.8" stroke-dasharray="4,3"/>
+          <text x="424" y="96" fill="rgba(219,227,213,0.5)" font-size="9" font-family="'Space Mono', monospace" letter-spacing="0.08em">O(C)₂</text>
+          <line class="sketch-path sketch-path-4" x1="160" y1="260" x2="80" y2="290" stroke="rgba(219,227,213,0.3)" stroke-width="0.8" stroke-dasharray="4,3"/>
+          <text x="10" y="286" fill="rgba(219,227,213,0.5)" font-size="9" font-family="'Space Mono', monospace" letter-spacing="0.08em">μ-node</text>
+          <path class="sketch-path sketch-path-4" d="M380,340 L420,340 M385,350 L415,350 M390,360 L410,360" stroke="rgba(219,227,213,0.2)" stroke-width="1" stroke-linecap="round"/>
+          <line x1="40" y1="390" x2="480" y2="390" stroke="rgba(219,227,213,0.15)" stroke-width="0.5"/>
+          <text x="40" y="414" fill="rgba(219,227,213,0.35)" font-size="10" font-family="'Cormorant Garamond', Georgia, serif" font-style="italic" letter-spacing="0.04em">"Decompose the whole — crystallize the parts."</text>
+          <text x="40" y="440" fill="rgba(219,227,213,0.2)" font-size="9" font-family="'Space Mono', monospace" letter-spacing="0.08em">OXAL.DEV — DRAFT 01</text>
+          <path d="M40,450 L100,510 M60,450 L120,510 M80,450 L140,510 M100,450 L160,510 M120,450 L180,510" stroke="rgba(219,227,213,0.06)" stroke-width="1"/>
+        </svg>
+      </div>
+      <div class="hero-center-text">
+        <p class="hero-center-tagline" id="typeTagline"></p>
+      </div>
+    </div>
+
+    <div class="hero__divider"></div>
+
+    <div class="hero__col hero__col--right">
+      <blockquote class="hero__quote">
+        "We do not add. We dissolve what doesn't belong — then architect what remains into something inevitable."
+      </blockquote>
+      <div class="hero__meta-grid">
+        <div class="hero__meta-item">
+          <div class="hero__meta-label">Founded</div>
+          <div class="hero__meta-value">MMXXV</div>
+        </div>
+        <div class="hero__meta-item">
+          <div class="hero__meta-label">Projects</div>
+          <div class="hero__meta-value red">∞</div>
+        </div>
+        <div class="hero__meta-item">
+          <div class="hero__meta-label">Disciplines</div>
+          <div class="hero__meta-value" style="font-size:16px">Design<br/>+ Code</div>
+        </div>
+        <div class="hero__meta-item">
+          <div class="hero__meta-label">Approach</div>
+          <div class="hero__meta-value" style="font-size:16px">Micro<br/>solutions</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ MARQUEE ══════════ -->
+  <div class="marquee-band">
+    <div class="marquee-track">
+      <span class="marquee-item">Brand Identity <span class="marquee-sep">—</span></span>
+      <span class="marquee-item">Product Design <span class="marquee-sep">—</span></span>
+      <span class="marquee-item">Engineering <span class="marquee-sep">—</span></span>
+      <span class="marquee-item">Digital Strategy <span class="marquee-sep">—</span></span>
+      <span class="marquee-item">Motion &amp; Interaction <span class="marquee-sep">—</span></span>
+      <span class="marquee-item">System Architecture <span class="marquee-sep">—</span></span>
+      <span class="marquee-item">OXAL.DEV <span class="marquee-sep">—</span></span>
+      <span class="marquee-item">Brand Identity <span class="marquee-sep">—</span></span>
+      <span class="marquee-item">Product Design <span class="marquee-sep">—</span></span>
+      <span class="marquee-item">Engineering <span class="marquee-sep">—</span></span>
+      <span class="marquee-item">Digital Strategy <span class="marquee-sep">—</span></span>
+      <span class="marquee-item">Motion &amp; Interaction <span class="marquee-sep">—</span></span>
+      <span class="marquee-item">System Architecture <span class="marquee-sep">—</span></span>
+      <span class="marquee-item">OXAL.DEV <span class="marquee-sep">—</span></span>
+    </div>
+  </div>
+
+  <!-- ══════════ PROCESS ══════════ -->
+  <div class="section-header" id="process">
+    <span class="section-header__title scramble" data-text="The Oxal Process">The Oxal Process</span>
+    <span class="section-header__index">§ 01</span>
+  </div>
+  <div style="height:1px;background:var(--c-rule)"></div>
+  <section class="section-process">
+    <div class="process-col tilt-card" data-reveal>
+      <div class="process-num">01</div>
+      <div class="process-icon">
+        <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
+          <path class="process-icon-line" d="M8,36 Q14,20 22,22 Q30,24 36,8" stroke="#1A1D1A" stroke-width="1.5" stroke-linecap="round" fill="none"/>
+          <circle cx="22" cy="22" r="3" fill="#E13010"/>
+          <path class="process-icon-line" d="M4,38 L8,36 M36,8 L40,6" stroke="#1A1D1A" stroke-width="1.2" stroke-linecap="round"/>
+        </svg>
+      </div>
+      <div class="process-title">Analyse</div>
+      <div class="process-text">We map the molecular structure of your problem — identifying every bond, every dependency, every hidden constraint. No assumption goes unquestioned.</div>
+    </div>
+    <div class="process-col tilt-card" data-reveal style="transition-delay:.1s">
+      <div class="process-num">02</div>
+      <div class="process-icon">
+        <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
+          <circle class="process-icon-line" cx="22" cy="22" r="14" stroke="#1A1D1A" stroke-width="1.5" stroke-dasharray="4 3"/>
+          <path class="process-icon-line" d="M22,8 L22,14 M22,30 L22,36 M8,22 L14,22 M30,22 L36,22" stroke="#1A1D1A" stroke-width="1.2" stroke-linecap="round"/>
+          <circle cx="22" cy="22" r="4" fill="none" stroke="#E13010" stroke-width="1.5"/>
+        </svg>
+      </div>
+      <div class="process-title">Dissolve</div>
+      <div class="process-text">Like oxalic acid on rust: we strip complexity to its base elements. What can't be reduced is redesigned. Nothing survives without earning its place.</div>
+    </div>
+    <div class="process-col tilt-card" data-reveal style="transition-delay:.2s">
+      <div class="process-num">03</div>
+      <div class="process-icon">
+        <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
+          <rect class="process-icon-line" x="8" y="16" width="12" height="12" stroke="#1A1D1A" stroke-width="1.2" rx="1"/>
+          <rect class="process-icon-line" x="24" y="16" width="12" height="12" stroke="#1A1D1A" stroke-width="1.2" rx="1"/>
+          <path class="process-icon-line" d="M20,22 L24,22" stroke="#E13010" stroke-width="1.5" stroke-linecap="round"/>
+          <path class="process-icon-line" d="M14,28 L14,34 L30,34 L30,28" stroke="#1A1D1A" stroke-width="1.2" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </div>
+      <div class="process-title">Compose</div>
+      <div class="process-text">Microsolutions crystallize. Each one precise, tested, and purposeful. We bind them with the elegance of a periodic table — where every element has a reason.</div>
+    </div>
+    <div class="process-col tilt-card" data-reveal style="transition-delay:.3s">
+      <div class="process-num">04</div>
+      <div class="process-icon">
+        <svg width="44" height="44" viewBox="0 0 44 44" fill="none">
+          <path class="process-icon-line" d="M12,32 L22,12 L32,32" stroke="#1A1D1A" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+          <path class="process-icon-line" d="M15,26 L29,26" stroke="#1A1D1A" stroke-width="1.2" stroke-linecap="round"/>
+          <circle cx="22" cy="12" r="4" fill="#E13010"/>
+        </svg>
+      </div>
+      <div class="process-title">Resolve</div>
+      <div class="process-text">The final compound: a unified solution indistinguishable from inevitability. Designed to look like it could not have been any other way.</div>
+    </div>
+  </section>
+
+  <!-- ══════════ BIG STATEMENT (STAGGER REVEAL) ══════════ -->
+  <section class="big-statement" data-reveal="stagger">
+    <div class="big-num">Ø</div>
+    <h2 class="big-statement__text">
+      <span class="stagger-word"><span class="stagger-word-inner" style="transition-delay:0s">We</span></span>
+      <span class="stagger-word"><span class="stagger-word-inner" style="transition-delay:0.05s">make</span></span>
+      <span class="stagger-word"><span class="stagger-word-inner" style="transition-delay:0.1s">the</span></span><br/>
+      <span class="stagger-word italic"><span class="stagger-word-inner" style="transition-delay:0.15s">impossible</span></span>
+      <span class="stagger-word"><span class="stagger-word-inner" style="transition-delay:0.2s">feel</span></span><br/>
+      <span class="stagger-word outline"><span class="stagger-word-inner" style="transition-delay:0.25s">obvious.</span></span>
+    </h2>
+    <div class="big-statement__side">
+      <div>OXAL.DEV</div>
+      <div>Design-first Engineering</div>
+      <div style="color:var(--c-vermilion)">est. 2025</div>
+    </div>
+  </section>
+
+  <!-- ══════════ WORKS ══════════ -->
+  <div class="section-header" id="works">
+    <span class="section-header__title scramble" data-text="Selected Works">Selected Works</span>
+    <span class="section-header__index">§ 02</span>
+  </div>
+  <div style="height:1px;background:var(--c-rule)"></div>
+  <section class="works-grid">
+    <div class="work-card tilt-card hover-work" data-reveal>
+      <div class="work-tag">Brand Identity + Web</div>
+      <h3 class="work-title"><em>Strata</em> — a SaaS<br/>for builders who<br/>think in systems.</h3>
+      <p class="work-desc">Full brand identity, design system, and web product for a developer-first infrastructure platform. Launched to 40k waitlist in 72 hours.</p>
+      <div class="work-visual">
+        <svg viewBox="0 0 600 200" xmlns="http://www.w3.org/2000/svg">
+          <rect width="600" height="200" fill="#1A1D1A"/>
+          <text x="40" y="120" fill="rgba(219,227,213,0.1)" font-size="110" font-family="'Cormorant SC',serif" font-weight="700" letter-spacing="-4">STRATA</text>
+          <line x1="0" y1="100" x2="600" y2="100" stroke="rgba(225,48,16,0.4)" stroke-width="0.7" stroke-dasharray="8,6"/>
+          <circle cx="300" cy="100" r="6" fill="#E13010"/>
+        </svg>
+      </div>
+    </div>
+    <div class="work-divider"></div>
+    <div style="display:flex;flex-direction:column;">
+      <div class="work-card work-card--sm tilt-card hover-work" data-reveal style="transition-delay:.1s">
+        <div class="work-tag">Product Design</div>
+        <div class="work-sm-title">Fenix — AI workspace<br/>for research teams</div>
+        <p class="work-sm-text">Designed from first principles. Every component earns its pixel. Zero UI debt at launch.</p>
+      </div>
+      <div class="work-card work-card--sm tilt-card hover-work" data-reveal style="transition-delay:.2s">
+        <div class="work-tag">Engineering + Motion</div>
+        <div class="work-sm-title">Vanta Protocol —<br/>trust infrastructure</div>
+        <p class="work-sm-text">Blockchain trust layer with a human-readable UI. Reduced onboarding friction by 78%.</p>
+      </div>
+    </div>
+    <div class="work-divider"></div>
+    <div style="display:flex;flex-direction:column;">
+      <div class="work-card work-card--sm tilt-card hover-work" data-reveal style="transition-delay:.3s">
+        <div class="work-tag">Identity + Strategy</div>
+        <div class="work-sm-title">Hollow Sun — creative<br/>studio rebrand</div>
+        <p class="work-sm-text">A full visual language overhaul in 3 weeks. Shortlisted for Awwwards Site of the Year.</p>
+      </div>
+      <div class="work-card work-card--sm tilt-card hover-work" data-reveal style="transition-delay:.4s">
+        <div class="work-tag">Web + Motion</div>
+        <div class="work-sm-title">Qubit Labs —<br/>quantum computing UX</div>
+        <p class="work-sm-text">Making the incomprehensible accessible. Complex domain, surgical design decisions.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ SERVICES ══════════ -->
+  <div class="section-header" id="services">
+    <span class="section-header__title scramble" data-text="What We Offer">What We Offer</span>
+    <span class="section-header__index">§ 03</span>
+  </div>
+  <div style="height:1px;background:var(--c-rule)"></div>
+  <section class="services">
+    <div class="services__label-col">
+      <div>
+        <h2 class="services__label">Six<br/>disciplines.<br/><em>One mind.</em></h2>
+        <p class="services__label-note">Every service at OXAL is designed to work in concert. We don't hand off — we integrate. Strategy informs design informs code informs motion. Always.</p>
+      </div>
+      <div style="margin-top:32px">
+        <a href="#contact" class="cta-btn magnetic" id="servBtn"><span>Let's Talk →</span></a>
+      </div>
+    </div>
+    <div class="services__divider"></div>
+    <div class="services__grid">
+      <div class="service-item" data-reveal>
+        <div class="service-icon-wrap">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+            <path d="M4,20 L14,6 L24,20" stroke="#E13010" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <line x1="7" y1="16" x2="21" y2="16" stroke="#1A1D1A" stroke-width="1" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="service-name">Brand Identity</div>
+        <div class="service-desc">Logo systems, visual language, tone of voice, and brand guidelines built to last decades.</div>
+      </div>
+      <div class="service-item" data-reveal style="transition-delay:.08s">
+        <div class="service-icon-wrap">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+            <rect x="4" y="6" width="20" height="16" rx="2" stroke="#E13010" stroke-width="1.5"/>
+            <line x1="8" y1="10" x2="20" y2="10" stroke="#1A1D1A" stroke-width="1" stroke-linecap="round"/>
+            <line x1="8" y1="14" x2="16" y2="14" stroke="#1A1D1A" stroke-width="1" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="service-name">Product Design</div>
+        <div class="service-desc">UX research, interaction design, and design systems that reduce friction to zero.</div>
+      </div>
+      <div class="service-item" data-reveal style="transition-delay:.16s">
+        <div class="service-icon-wrap">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+            <polyline points="4,18 10,12 15,16 24,8" stroke="#E13010" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <circle cx="24" cy="8" r="2" fill="#E13010"/>
+          </svg>
+        </div>
+        <div class="service-name">Web Engineering</div>
+        <div class="service-desc">Production-ready frontends and full-stack applications. Performance is a feature, not a footnote.</div>
+      </div>
+      <div class="service-item" data-reveal style="transition-delay:.24s">
+        <div class="service-icon-wrap">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+            <circle cx="14" cy="14" r="8" stroke="#E13010" stroke-width="1.5" stroke-dasharray="3 2.5"/>
+            <circle cx="14" cy="14" r="3" fill="#1A1D1A"/>
+            <line x1="14" y1="4" x2="14" y2="8" stroke="#1A1D1A" stroke-width="1" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="service-name">Motion &amp; Interaction</div>
+        <div class="service-desc">Micro-animations and transitions that transform static products into kinetic experiences.</div>
+      </div>
+      <div class="service-item" data-reveal style="transition-delay:.32s">
+        <div class="service-icon-wrap">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+            <path d="M6,22 L12,10 L18,16 L22,8" stroke="#E13010" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+            <rect x="18" y="18" width="5" height="5" stroke="#1A1D1A" stroke-width="1"/>
+          </svg>
+        </div>
+        <div class="service-name">Strategy &amp; Advisory</div>
+        <div class="service-desc">Positioning, go-to-market, and competitive analysis. We think before we design.</div>
+      </div>
+      <div class="service-item" data-reveal style="transition-delay:.4s">
+        <div class="service-icon-wrap">
+          <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+            <rect x="4" y="10" width="8" height="8" stroke="#E13010" stroke-width="1.5" rx="1"/>
+            <rect x="16" y="10" width="8" height="8" stroke="#1A1D1A" stroke-width="1.2" rx="1"/>
+            <line x1="12" y1="14" x2="16" y2="14" stroke="#E13010" stroke-width="1.2" stroke-linecap="round"/>
+            <line x1="8" y1="18" x2="8" y2="22" stroke="#1A1D1A" stroke-width="1" stroke-linecap="round"/>
+            <line x1="20" y1="18" x2="20" y2="22" stroke="#1A1D1A" stroke-width="1" stroke-linecap="round"/>
+            <line x1="8" y1="22" x2="20" y2="22" stroke="#1A1D1A" stroke-width="1" stroke-linecap="round"/>
+          </svg>
+        </div>
+        <div class="service-name">System Architecture</div>
+        <div class="service-desc">Complex problems decomposed into modular, scalable microsystems that compound in value.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ MANIFESTO ══════════ -->
+  <div class="section-header">
+    <span class="section-header__title scramble" data-text="Manifesto">Manifesto</span>
+    <span class="section-header__index">§ 04</span>
+  </div>
+  <div style="height:1px;background:var(--c-rule)"></div>
+  <section class="manifesto">
+    <div class="manifesto__left" data-reveal>
+      <div class="manifesto__eyebrow">The OXAL Philosophy</div>
+      <h2 class="manifesto__heading">Design is not<br/>decoration. It is<br/><em>precision.</em></h2>
+      <p class="manifesto__body">
+        We named ourselves after an acid because acids are honest. They do not negotiate with what doesn't belong. They dissolve it. We apply the same ruthlessness to every pixel, every line of code, every strategic decision. The result is work that feels inevitable — as if the universe could not have arranged it any other way.
+      </p>
+    </div>
+    <div class="manifesto__divider"></div>
+    <div class="manifesto__right">
+      <div class="manifesto__formula" data-reveal>
+        <div class="step">
+          <span class="step-num">01</span>
+          <span class="step-label">Receive the complex</span>
+          <span class="step-line"></span>
+          <span class="step-arrow">↓</span>
+        </div>
+        <div class="step" style="margin-top:20px">
+          <span class="step-num">02</span>
+          <span class="step-label">Break to microsolutions</span>
+          <span class="step-line"></span>
+          <span class="step-arrow">↓</span>
+        </div>
+        <div class="step" style="margin-top:20px">
+          <span class="step-num">03</span>
+          <span class="step-label">Refine each element</span>
+          <span class="step-line"></span>
+          <span class="step-arrow">↓</span>
+        </div>
+        <div class="step" style="margin-top:20px">
+          <span class="step-num">04</span>
+          <span class="step-label" style="color:var(--c-vermilion)">Return the resolved</span>
+          <span class="step-line" style="background:rgba(225,48,16,.3)"></span>
+          <span class="step-arrow" style="color:var(--c-graphite)">✦</span>
+        </div>
+      </div>
+      <div class="manifesto__cta-area" data-reveal>
+        <div class="manifesto__cta-label">Ready to dissolve your biggest challenge?</div>
+        <a href="#contact" class="cta-btn magnetic" id="maniBtn"><span>Start with OXAL →</span></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ══════════ FOOTER ══════════ -->
+  <footer id="contact">
+    <div style="height:3px;background:var(--c-vermilion)"></div>
+    <div class="footer__top">
+      <div class="footer__col">
+        <div class="footer__col-label">The Agency</div>
+        <div class="footer__logo-text">OXAL</div>
+        <div class="footer__logo-sub">oxal.dev — est. 2025</div>
+        <p style="font-size:13px;color:rgba(219,227,213,0.45);margin-top:20px;line-height:1.65;">
+          We build what endures.<br/>Design and engineering for ambitious companies.
+        </p>
+      </div>
+      <div class="footer__divider"></div>
+      <div class="footer__col">
+        <div class="footer__col-label">Navigation</div>
+        <ul class="footer__link-list">
+          <li><a href="#process" class="magnetic-link">Process</a></li>
+          <li><a href="#works" class="magnetic-link">Selected Works</a></li>
+          <li><a href="#services" class="magnetic-link">Services</a></li>
+          <li><a href="#contact" class="magnetic-link">Contact</a></li>
+        </ul>
+      </div>
+      <div class="footer__divider"></div>
+      <div class="footer__col">
+        <div class="footer__col-label">Get in Touch</div>
+        <a href="mailto:hello@oxal.dev" class="footer__contact-email">hello@oxal.dev</a>
+        <p class="footer__contact-note">
+          We take on a limited number of projects each quarter to ensure full creative and strategic investment. Reach out early.
+        </p>
+        <div style="margin-top:28px">
+          <a href="#" class="cta-btn magnetic" style="font-size:11px;padding:12px 22px;" id="footBtn">
+            <span>Commission Work →</span>
+          </a>
+        </div>
+      </div>
+    </div>
+    <div class="footer__bottom">
+      <span>© 2025 OXAL. All rights reserved.</span>
+      <span>OXAL.DEV — Design with Precision</span>
+      <span>
+        <a href="#">Privacy</a>
+        <span style="margin:0 12px;opacity:.3">—</span>
+        <a href="#">Terms</a>
+      </span>
+    </div>
+  </footer>
+
+  <script>
+  /* ═══════════════════════════════════════════════════════════
+     OXAL — Reverted Base
+  ═══════════════════════════════════════════════════════════ */
+
+  // ── 0. LENIS SMOOTH SCROLLING ──────────────────────────────
+  const lenis = new Lenis({
+    duration: 1.2,
+    easing: (t) => Math.min(1, 1.001 - Math.pow(2, -10 * t)),
+    direction: 'vertical',
+    gestureDirection: 'vertical',
+    smooth: true,
+    mouseMultiplier: 1,
+    smoothTouch: false,
+    touchMultiplier: 2,
+    infinite: false,
+  });
+  
+  function raf(time) {
+    lenis.raf(time);
+    requestAnimationFrame(raf);
+  }
+  requestAnimationFrame(raf);
+
+  // SCROLL PROGRESS WITH LENIS
+  const progBar = document.getElementById('scroll-progress');
+  lenis.on('scroll', (e) => {
+    const pct = (e.scroll / e.limit) * 100;
+    progBar.style.width = pct + '%';
+  });
+
+  // ── 0.5 CLOCK + PERCENTAGE LOADER ──────────────────────────
+  function updateTime() {
+    const now = new Date();
+    document.getElementById('localTime').innerHTML = `<span class="clock-dot">●</span> LOCAL TIME: ${now.toLocaleTimeString('en-US', { hour12: false })}`;
+  }
+  setInterval(updateTime, 1000);
+  updateTime();
+
+  let pct = 0;
+  const pctEl = document.getElementById('loadPct');
+  const pctInterval = setInterval(() => {
+    pct += Math.floor(Math.random() * 5) + 1;
+    if (pct >= 100) { pct = 100; clearInterval(pctInterval); }
+    pctEl.textContent = pct;
+  }, 30);
+
+  // ── 1. PAGE LOAD ─────────────────────────────────────────
+  window.addEventListener('load', () => {
+    setTimeout(() => document.getElementById('loadScreen').classList.add('gone'), 1600);
+  });
+
+  // ── 2. DUAL CURSOR SYSTEM ────────────────────────────────
+  const ch = document.getElementById('crosshair');
+  const chRing = document.getElementById('crosshair-ring');
+  const workCursor = document.getElementById('work-cursor');
+  
+  let mx = 0, my = 0, rx = 0, ry = 0, rrx = 0, rry = 0;
+  let wx = window.innerWidth/2, wy = window.innerHeight/2; // for work cursor
+
+  document.addEventListener('mousemove', e => {
+    mx = e.clientX; my = e.clientY;
+    ch.style.left = mx + 'px';
+    ch.style.top  = my + 'px';
+  });
+
+  (function animCursor() {
+    // Crosshair ring lag
+    rx += (mx - rx) * 0.18;
+    ry += (my - ry) * 0.18;
+    rrx += (mx - rrx) * 0.08;
+    rry += (my - rry) * 0.08;
+    chRing.style.left = rrx + 'px';
+    chRing.style.top  = rry + 'px';
+    
+    // Work cursor magnetic follow
+    wx += (mx - wx) * 0.15;
+    wy += (my - wy) * 0.15;
+    workCursor.style.left = wx + 'px';
+    workCursor.style.top = wy + 'px';
+    
+    requestAnimationFrame(animCursor);
+  })();
+
+  // Standard Hover targets
+  const hoverTargets = document.querySelectorAll('a, button, .process-col, .service-item, .cta-btn, .fnav-link');
+  hoverTargets.forEach(el => {
+    el.addEventListener('mouseenter', () => document.body.classList.add('hovering'));
+    el.addEventListener('mouseleave', () => document.body.classList.remove('hovering'));
+  });
+  
+  // Work Section Custom Cursor
+  document.querySelectorAll('.hover-work').forEach(card => {
+    card.addEventListener('mouseenter', () => {
+      document.body.classList.add('hover-work');
+      // Snap to mouse instantly on enter
+      wx = mx; wy = my;
+    });
+    card.addEventListener('mouseleave', () => document.body.classList.remove('hover-work'));
+  });
+
+  // ── 4. FLOATING NAV — SHOW/HIDE ON SCROLL (WITH DELAY/THRESHOLD)
+  const floatingNav = document.getElementById('floatingNav');
+  let lastScroll = 0;
+  floatingNav.classList.add('hidden'); // Start hidden
+
+  lenis.on('scroll', (e) => {
+    const current = e.scroll;
+    // Don't show the floating nav if we are near the absolute top
+    if (current > 600) {
+      if (current < lastScroll - 5) {
+        // We scrolled UP by at least 5px, show the nav
+        floatingNav.classList.remove('hidden');
+        lastScroll = current;
+      } else if (current > lastScroll + 30) {
+        // We scrolled continuous DOWN by at least 30px, hide the nav
+        floatingNav.classList.add('hidden');
+        lastScroll = current;
+      }
+      // If we scroll down just a tiny bit, it keeps its current visible state 
+      // (making it stay visible longer)
+    } else {
+      // If we are at the top section of the page, always hide it
+      floatingNav.classList.add('hidden');
+      lastScroll = current;
+    }
+  });
+
+  // ── 5. MAGNETIC BUTTONS & LINKS ───────────────────────────
+  document.querySelectorAll('.magnetic').forEach(btn => {
+    btn.addEventListener('mousemove', e => {
+      const r = btn.getBoundingClientRect();
+      const cx = r.left + r.width / 2;
+      const cy = r.top  + r.height / 2;
+      const dx = (e.clientX - cx) * 0.32;
+      const dy = (e.clientY - cy) * 0.32;
+      btn.style.transform = `translate(${dx}px, ${dy}px)`;
+    });
+    btn.addEventListener('mouseleave', () => {
+      btn.style.transform = 'translate(0,0)';
+    });
+  });
+  
+  document.querySelectorAll('.magnetic-link').forEach(link => {
+    link.addEventListener('mousemove', e => {
+      const r = link.getBoundingClientRect();
+      const cx = r.left + r.width / 2;
+      const cy = r.top  + r.height / 2;
+      const dx = (e.clientX - cx) * 0.15;
+      const dy = (e.clientY - cy) * 0.15;
+      link.style.transform = `translate(${dx}px, ${dy}px)`;
+    });
+    link.addEventListener('mouseleave', () => {
+      link.style.transform = 'translate(0,0)';
+    });
+  });
+
+  // ── 6. OXAL LETTER MAGNETIC REPEL ────────────────────────
+  document.querySelectorAll('.oxal-letter').forEach(letter => {
+    letter.addEventListener('mousemove', e => {
+      const r = letter.getBoundingClientRect();
+      const cx = r.left + r.width / 2;
+      const cy = r.top + r.height / 2;
+      const dx = (e.clientX - cx) * 0.25;
+      const dy = (e.clientY - cy) * 0.18;
+      letter.style.transform = `translate(${dx}px, ${dy}px) rotate(${dx * 0.05}deg)`;
+    });
+    letter.addEventListener('mouseleave', () => {
+      letter.style.transform = 'translate(0,0) rotate(0deg)';
+    });
+  });
+
+  // ── 7. SCROLL REVEAL ─────────────────────────────────────
+  const revObs = new IntersectionObserver(entries => {
+    entries.forEach(e => { if (e.isIntersecting) { e.target.classList.add('revealed'); revObs.unobserve(e.target); } });
+  }, { threshold: 0.08, rootMargin: '0px 0px -40px 0px' });
+  document.querySelectorAll('[data-reveal]').forEach(el => revObs.observe(el));
+
+  // ── 8. CHARCOAL PARTICLE ENGINE ───────────────────────────
+  const canvas = document.getElementById('particle-canvas');
+  const ctx = canvas.getContext('2d');
+  let W, H, particles = [];
+  function resizeCanvas() { W = canvas.width = window.innerWidth; H = canvas.height = window.innerHeight; }
+  resizeCanvas(); window.addEventListener('resize', resizeCanvas, { passive: true });
+
+  class Particle {
+    constructor(x, y, isRed) {
+      this.x = x; this.y = y; this.life = 1;
+      this.decay = 0.022 + Math.random() * 0.03;
+      const angle = Math.random() * Math.PI * 2;
+      const speed = Math.random() * 2 + 0.3;
+      this.vx = Math.cos(angle) * speed;
+      this.vy = Math.sin(angle) * speed - 0.5;
+      this.size = Math.random() * 3 + 0.6;
+      this.isLine = Math.random() > 0.5;
+      this.angle = Math.random() * Math.PI;
+      this.len = Math.random() * 14 + 4;
+      this.isRed = isRed || false;
+    }
+    update() {
+      this.x += this.vx; this.y += this.vy;
+      this.vy += 0.035; this.life -= this.decay; this.vx *= 0.97;
+    }
+    draw() {
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, this.life) * 0.5;
+      const col = this.isRed ? '#E13010' : '#1A1D1A';
+      ctx.strokeStyle = col; ctx.fillStyle = col;
+      if (this.isLine) {
+        ctx.lineWidth = 0.7;
+        ctx.beginPath();
+        ctx.moveTo(this.x - Math.cos(this.angle)*this.len/2, this.y - Math.sin(this.angle)*this.len/2);
+        ctx.lineTo(this.x + Math.cos(this.angle)*this.len/2, this.y + Math.sin(this.angle)*this.len/2);
+        ctx.stroke();
+      } else {
+        ctx.beginPath(); ctx.arc(this.x, this.y, this.size * 0.45, 0, Math.PI*2); ctx.fill();
+      }
+      ctx.restore();
+    }
+  }
+
+  let mouseOnHot = false, lmx = 0, lmy = 0;
+  document.addEventListener('mousemove', e => {
+    if (mouseOnHot && (Math.abs(e.clientX-lmx)>2 || Math.abs(e.clientY-lmy)>2)) {
+      const isRed = Math.random() > 0.85;
+      for (let i = 0; i < 3; i++) particles.push(new Particle(e.clientX+(Math.random()-.5)*18, e.clientY+(Math.random()-.5)*18, isRed));
+    }
+    lmx = e.clientX; lmy = e.clientY;
+  });
+  document.querySelectorAll('.process-col, .service-item, .work-card, .cta-btn, .hero__col--center, .fnav-link').forEach(el => {
+    el.addEventListener('mouseenter', () => mouseOnHot = true);
+    el.addEventListener('mouseleave', () => mouseOnHot = false);
+  });
+  (function animParticles() {
+    ctx.clearRect(0,0,W,H);
+    particles = particles.filter(p => p.life > 0);
+    particles.forEach(p => { p.update(); p.draw(); });
+    if (particles.length > 350) particles.splice(0, 8);
+    requestAnimationFrame(animParticles);
+  })();
+
+  document.getElementById('sketchPanel').addEventListener('mousemove', e => {
+    if (Math.random() > 0.65) particles.push(new Particle(e.clientX+(Math.random()-.5)*40, e.clientY+(Math.random()-.5)*20));
+  });
+
+  // ── 9. TYPEWRITER ─────────────────────────────────────────
+  const lines = [
+    '"Break it. Refine it. Resolve it."',
+    '"Microsolutions → One whole."',
+    '"Design & Engineering — unified."',
+    '"OXAL.DEV — Precision by nature."',
+  ];
+  let li=0, ci=0, del=false;
+  const tagEl = document.getElementById('typeTagline');
+  function typeLoop() {
+    const cur = lines[li];
+    if (!del) {
+      ci++; tagEl.textContent = cur.slice(0, ci);
+      if (ci === cur.length) { del=true; setTimeout(typeLoop, 2400); return; }
+    } else {
+      ci--; tagEl.textContent = cur.slice(0, ci);
+      if (ci === 0) { del=false; li=(li+1)%lines.length; }
+    }
+    setTimeout(typeLoop, del ? 26 : 52);
+  }
+  setTimeout(typeLoop, 2200);
+
+  // ── 10. VERMILION SWEEP ────────────────────────────────────
+  const sweep = document.getElementById('sweep');
+  function triggerSweep() {
+    sweep.classList.remove('active'); void sweep.offsetWidth; sweep.classList.add('active');
+    const cx = window.innerWidth/2, cy = window.innerHeight/2;
+    for (let i=0; i<30; i++) particles.push(new Particle(cx+(Math.random()-.5)*200, cy+(Math.random()-.5)*200, true));
+  }
+  document.querySelectorAll('.cta-btn').forEach(btn => btn.addEventListener('click', e => { 
+    // If it's a smooth scroll link, don't prevent default completely, just trigger sweep
+    if(!btn.getAttribute('href').startsWith('#')) {
+      e.preventDefault(); 
+    }
+    triggerSweep(); 
+  }));
+
+  // ── 11. SKETCH SVG 12fps PULSE ────────────────────────────
+  const sketchSVG = document.getElementById('sketch-svg');
+  const pulseSeq = [0, 1.4, -1.4, 0.7, -0.7, 0];
+  let pf = 0;
+  setInterval(() => {
+    pf = (pf+1)%pulseSeq.length;
+    sketchSVG.querySelectorAll('path, line').forEach(p => {
+      const base = parseFloat(p.dataset.base || p.getAttribute('stroke-width') || 1);
+      if (!p.dataset.base) p.dataset.base = base;
+      if (p.getAttribute('stroke')) p.setAttribute('stroke-width', Math.max(0.4, base + pulseSeq[pf]*0.09));
+    });
+  }, 83);
+
+  // ── 12. TEXT SCRAMBLE EFFECT ───────────────────────────────
+  const CHARS = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789—·';
+  function scramble(el) {
+    const original = el.dataset.text;
+    let frame = 0, iterations = 0;
+    const interval = setInterval(() => {
+      el.textContent = original.split('').map((char, i) => {
+        if (char === ' ') return ' ';
+        if (i < iterations) return original[i];
+        return CHARS[Math.floor(Math.random() * CHARS.length)];
+      }).join('');
+      if (frame % 2 === 0) iterations++;
+      frame++;
+      if (iterations >= original.length) { el.textContent = original; clearInterval(interval); }
+    }, 32);
+  }
+  document.querySelectorAll('.scramble').forEach(el => {
+    el.addEventListener('mouseenter', () => scramble(el));
+  });
+
+  // ── 13. CARD TILT (3D perspective) ────────────────────────
+  document.querySelectorAll('.tilt-card').forEach(card => {
+    card.addEventListener('mousemove', e => {
+      const r = card.getBoundingClientRect();
+      const x = (e.clientX - r.left) / r.width  - 0.5;
+      const y = (e.clientY - r.top)  / r.height - 0.5;
+      card.style.transform = `perspective(600px) rotateY(${x*6}deg) rotateX(${-y*4}deg) translateZ(4px)`;
+    });
+    card.addEventListener('mouseleave', () => {
+      card.style.transform = 'perspective(600px) rotateY(0) rotateX(0) translateZ(0)';
+    });
+  });
+
+  // ── 14. SMOOTH SCROLL ANCHORS WITH LENIS ──────────────────
+  document.querySelectorAll('a[href^="#"]').forEach(a => {
+    a.addEventListener('click', e => {
+      const id = a.getAttribute('href');
+      const target = document.querySelector(id);
+      if (target) {
+        e.preventDefault();
+        lenis.scrollTo(target, { offset: 0, duration: 1.5 });
+      }
+    });
+  });
+
+  // ── 15. PARALLAX & DYNAMIC EFFECTS ON SCROLL ──────────────
+  const bigNum = document.querySelector('.big-num');
+  const scrollDrawPaths = document.querySelectorAll('.scroll-draw');
+  
+  lenis.on('scroll', (e) => {
+    // Parallax the huge Ø
+    if (bigNum) bigNum.style.transform = `translateY(${e.scroll * 0.07}px)`;
+    
+    // Draw the SVG sketch as you scroll
+    const scrollFrac = Math.min(e.scroll / 500, 1);
+    scrollDrawPaths.forEach(p => {
+      p.style.strokeDashoffset = 600 - (scrollFrac * 600);
+    });
+  });
+
+  </script>
+</body>
+</html>
