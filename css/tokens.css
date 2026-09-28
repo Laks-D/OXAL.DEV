@@ -1,0 +1,72 @@
+/* ════════════════════════════════════════════════
+   OXAL.DEV — Design Tokens & Global Reset
+   On The Rise Dev Community
+   ════════════════════════════════════════════════ */
+
+/* ─── DESIGN TOKENS ─────────────────────────────── */
+:root {
+  --c-canvas:    #DBE3D5;
+  --c-graphite:  #1A1D1A;
+  --c-vermilion: #E13010;
+  --c-chalk:     #FFFFFF;
+  --c-mid:       #8A9182;
+  --c-rule:      rgba(26,29,26,.18);
+  --c-rule-hard: rgba(26,29,26,.6);
+
+  --ff-display:  'Cormorant Garamond', Georgia, serif;
+  --ff-caps:     'Cormorant SC', Georgia, serif;
+  --ff-body:     'Space Grotesk', system-ui, sans-serif;
+  --ff-mono:     'Space Mono', monospace;
+
+  --ease-snap:    cubic-bezier(.22,1,.36,1);
+  --ease-elastic: cubic-bezier(.34,1.56,.64,1);
+}
+
+/* ─── RESET ──────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html.lenis, html.lenis body { height: auto; width: 100vw; overflow-x: hidden; }
+.lenis.lenis-smooth { scroll-behavior: auto !important; }
+.lenis.lenis-smooth [data-lenis-prevent] { overscroll-behavior: contain; }
+.lenis.lenis-stopped { overflow: hidden; }
+.lenis.lenis-smooth iframe { pointer-events: none; }
+
+body {
+  background: var(--c-canvas);
+  color: var(--c-graphite);
+  font-family: var(--ff-body);
+  font-size: 15px;
+  line-height: 1.55;
+  cursor: none;
+}
+
+::selection { background: var(--c-vermilion); color: var(--c-chalk); }
+
+/* ─── SCROLLBAR ──────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; }
+::-webkit-scrollbar-track { background: var(--c-canvas); border-left: 1px solid var(--c-rule); }
+::-webkit-scrollbar-thumb { background: var(--c-vermilion); border-radius: 0; }
+::-webkit-scrollbar-thumb:hover { background: var(--c-graphite); }
+
+/* ─── BACKGROUND ARCHITECTURAL GRID ──────────────── */
+body::after {
+  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 1;
+  background-size: 20vw 100%;
+  background-image: linear-gradient(to right, var(--c-rule) 1px, transparent 1px);
+  opacity: 0.3;
+}
+
+/* ─── PAPER TEXTURE OVERLAY ──────────────────────── */
+body::before {
+  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 9999;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='300' height='300'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='300' height='300' filter='url(%23n)' opacity='0.04'/%3E%3C/svg%3E");
+  opacity: 0.55;
+  mix-blend-mode: multiply;
+}
+
+/* ─── UTILITY ────────────────────────────────────── */
+#scroll-progress {
+  position: fixed; top: 0; left: 0; height: 3px;
+  background: var(--c-vermilion); z-index: 100001;
+  width: 0%; transform-origin: left; will-change: width;
+}
+#particle-canvas { position: fixed; inset: 0; pointer-events: none; z-index: 100; }

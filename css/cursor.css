@@ -1,0 +1,78 @@
+/* ════════════════════════════════════════════════
+   OXAL.DEV — Cursor System
+   ════════════════════════════════════════════════ */
+
+#cursor-wrap {
+  mix-blend-mode: difference;
+  z-index: 100000;
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+}
+
+/* ─── CROSSHAIR ──────────────────────────────── */
+#crosshair {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  transition: opacity .2s;
+}
+.ch-h, .ch-v {
+  position: absolute;
+  background: #fff;
+  transition: width .2s var(--ease-snap), height .2s var(--ease-snap), opacity .2s;
+}
+.ch-h {
+  width: 28px; height: 1.5px;
+  top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+}
+.ch-v {
+  width: 1.5px; height: 28px;
+  top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+}
+.ch-circle {
+  position: absolute;
+  width: 6px; height: 6px;
+  border: 1.5px solid #fff;
+  border-radius: 50%;
+  top: 50%; left: 50%;
+  transform: translate(-50%,-50%);
+  transition: width .2s var(--ease-elastic), height .2s var(--ease-elastic), background .2s, border-color .2s;
+}
+
+/* Hover state */
+body.hovering .ch-h { width: 0px; opacity: 0; }
+body.hovering .ch-v { height: 0px; opacity: 0; }
+body.hovering .ch-circle { width: 14px; height: 14px; background: #fff; border-color: #fff; }
+
+/* ─── CROSSHAIR RING ─────────────────────────── */
+#crosshair-ring {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  width: 44px; height: 44px;
+  transition: opacity .2s;
+}
+#crosshair-ring svg { width: 100%; height: 100%; }
+
+/* ─── WORK VIEW CURSOR ───────────────────────── */
+#work-cursor {
+  position: absolute;
+  transform: translate(-50%, -50%) scale(0);
+  width: 72px; height: 72px;
+  background: var(--c-vermilion);
+  border-radius: 50%;
+  display: flex; align-items: center; justify-content: center;
+  font-family: var(--ff-mono);
+  font-size: 10px; font-weight: 700;
+  letter-spacing: 0.1em;
+  color: #fff;
+  opacity: 0;
+  transition: transform .3s var(--ease-elastic), opacity .3s;
+  mix-blend-mode: normal;
+}
+
+/* State switches */
+body.hover-work #crosshair { opacity: 0; transform: translate(-50%, -50%) scale(0.5); }
+body.hover-work #crosshair-ring { opacity: 0; }
+body.hover-work #work-cursor { opacity: 1; transform: translate(-50%, -50%) scale(1); }
