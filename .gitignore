@@ -1,0 +1,25 @@
+# OXAL.DEV — Git Ignore
+
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor directories
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Node (if ever added)
+node_modules/
+npm-debug.log
+yarn-error.log
+
+# Build output (if ever added)
+dist/
+build/
+
+# Env files
+.env
+.env.local
