@@ -1,0 +1,78 @@
+/* ════════════════════════════════════════════════
+   OXAL.DEV — Navigation
+   ════════════════════════════════════════════════ */
+
+.floating-nav {
+  position: fixed; top: 20px; left: 50%;
+  transform: translateX(-50%);
+  z-index: 9990;
+  display: flex; align-items: center; gap: 0;
+  background: var(--c-graphite);
+  border: 1px solid rgba(219,227,213,.12);
+  padding: 0;
+  transition: top .4s var(--ease-snap), opacity .3s, transform .4s var(--ease-snap);
+  overflow: hidden;
+}
+.floating-nav.hidden { top: -80px; opacity: 0; pointer-events: none; }
+
+.fnav-logo {
+  font-family: var(--ff-caps);
+  font-size: 18px; font-weight: 700;
+  color: var(--c-canvas);
+  letter-spacing: .04em;
+  padding: 14px 24px;
+  border-right: 1px solid rgba(219,227,213,.12);
+  text-decoration: none;
+  position: relative;
+  white-space: nowrap;
+  cursor: none;
+}
+.fnav-logo .fnav-dot { color: var(--c-vermilion); display: inline-block; }
+
+.fnav-links { display: flex; align-items: center; }
+
+.fnav-link {
+  font-family: var(--ff-mono);
+  font-size: 10px; letter-spacing: .14em;
+  text-transform: uppercase;
+  color: rgba(219,227,213,.6);
+  text-decoration: none;
+  padding: 14px 20px;
+  position: relative;
+  transition: color .2s;
+  border-right: 1px solid rgba(219,227,213,.08);
+  white-space: nowrap;
+  cursor: none;
+}
+.fnav-link::after {
+  content: ''; position: absolute;
+  bottom: 0; left: 20px; right: 20px;
+  height: 1.5px; background: var(--c-vermilion);
+  transform: scaleX(0); transform-origin: left;
+  transition: transform .28s var(--ease-snap);
+}
+.fnav-link:hover { color: var(--c-canvas); }
+.fnav-link:hover::after { transform: scaleX(1); }
+
+.fnav-cta {
+  font-family: var(--ff-mono);
+  font-size: 10px; letter-spacing: .14em;
+  text-transform: uppercase;
+  color: var(--c-chalk);
+  background: var(--c-vermilion);
+  text-decoration: none;
+  padding: 14px 22px;
+  white-space: nowrap;
+  position: relative; overflow: hidden;
+  transition: color .25s;
+  cursor: none;
+}
+.fnav-cta::before {
+  content: ''; position: absolute; inset: 0;
+  background: var(--c-canvas);
+  transform: translateY(100%);
+  transition: transform .28s var(--ease-snap);
+}
+.fnav-cta:hover::before { transform: translateY(0); }
+.fnav-cta:hover { color: var(--c-graphite); }
+.fnav-cta span { position: relative; z-index: 1; }
